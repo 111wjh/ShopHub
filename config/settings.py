@@ -14,10 +14,31 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
+
+# Celery 配置
+CELERY_BROKER_URL = os.getenv(
+    'CELERY_BROKER_URL',
+    'redis://127.0.0.1:6379/0',
+)
+
+CELERY_RESULT_BACKEND = os.getenv(
+    'CELERY_RESULT_BACKEND',
+    'redis://127.0.0.1:6379/1',
+)
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Shanghai'
+# 这里的 15 * 60 表示 15 分钟。之后订单创建成功，Celery 就可以安排在 15 分钟后检查订单是否仍未支付
+ORDER_PAYMENT_TIMEOUT_SECONDS = 15 * 60 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 

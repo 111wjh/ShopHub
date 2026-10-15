@@ -11,8 +11,10 @@ from cart.models import Cart, CartItem
 
 from .models import Order, OrderItem
 from .serializers import OrderSerializer
+from .tasks import cancel_order_if_unpaid
+from django.conf import settings
 
-
+from .services import cancel_pending_order
 
 class OrderCreateView(APIView):
     """从购物车创建订单，并通过行锁防止库存超卖"""
@@ -117,6 +119,16 @@ class OrderCreateView(APIView):
             id__in=[item.id for item in cart_items]
         ).delete()
 
+        # 9. 安排订单超时检查任务
+
+        transaction.on_commit(
+            lambda: cancel_order_if_unpaid.apply_async(
+                args=[order.id],
+                countdown=settings.ORDER_PAYMENT_TIMEOUT_SECONDS,
+            )
+        )
+            
+
         # 9. 返回订单
         serializer = OrderSerializer(order)
 
@@ -177,70 +189,33 @@ class OrderDetailView(APIView):
 
 
 
+
 class OrderCancelView(APIView):
-    """取消订单，并防止重复恢复库存"""
+    """取消待支付订单，并安全恢复库存"""
 
     permission_classes = [IsAuthenticated]
 
-    @transaction.atomic
     def post(self, request, order_id):
-        # 锁定当前用户的订单
-        try:
-            order = Order.objects.select_for_update().get(
-                id=order_id,
-                user=request.user
-            )
-        except Order.DoesNotExist:
+        # 先确认订单属于当前用户
+        if not Order.objects.filter(
+            id=order_id,
+            user=request.user,
+        ).exists():
             return Response(
                 {'detail': '订单不存在'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 只有待支付订单可以取消
-        if order.status != 'pending':
+        # 调用公共取消逻辑
+        cancelled = cancel_pending_order(order_id)
+
+        if not cancelled:
             return Response(
                 {'detail': '当前订单状态不能取消'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 获取订单商品
-        items = list(
-            OrderItem.objects.filter(
-                order=order
-            ).order_by('product_id')
-        )
-
-        # 锁定相关商品，避免并发修改库存
-        product_ids = sorted({
-            item.product_id
-            for item in items
-            if item.product_id is not None
-        })
-
-        products = Product.objects.select_for_update().filter(
-            id__in=product_ids
-        ).order_by('id')
-
-        product_map = {
-            product.id: product
-            for product in products
-        }
-
-        # 恢复库存
-        for item in items:
-            product = product_map.get(item.product_id)
-
-            if product is None:
-                continue
-
-            product.stock += item.quantity
-            product.save(update_fields=['stock'])
-
-        # 修改订单状态
-        order.status = 'cancelled'
-        order.save(
-            update_fields=['status', 'updated_at']
-        )
+        order = Order.objects.get(id=order_id)
 
         return Response(OrderSerializer(order).data)
 
