@@ -45,10 +45,13 @@ class Order(models.Model):
         auto_now=True
     )
 
-    total_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2
-    )
+    paid_at = models.DateTimeField(
+    null=True,
+    blank=True
+)
+
+    
+    
 
     class Meta:
         constraints = [

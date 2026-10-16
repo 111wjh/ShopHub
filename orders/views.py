@@ -15,7 +15,7 @@ from .tasks import cancel_order_if_unpaid
 from django.conf import settings
 
 from .services import cancel_pending_order
-
+from django.utils import timezone
 class OrderCreateView(APIView):
     """从购物车创建订单，并通过行锁防止库存超卖"""
 
@@ -249,9 +249,8 @@ class OrderPayView(APIView):
 
         # 模拟支付成功
         order.status = 'paid'
-        order.save(
-            update_fields=['status', 'updated_at']
-        )
+        order.paid_at = timezone.now()
+        order.save(update_fields=['status', 'paid_at', 'updated_at'])
 
         serializer = OrderSerializer(order)
 
