@@ -1,0 +1,23 @@
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: shophub-backend:latest
+    container_name: shophub-backend
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./media:/app/media
+    restart: unless-stopped
+
+  celery:
+    image: shophub-backend:latest
+    container_name: shophub-celery
+    env_file:
+      - .env.docker
+    command: celery -A config worker -l info --pool=solo
+    restart: unless-stopped
