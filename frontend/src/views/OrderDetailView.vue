@@ -132,7 +132,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const route = useRoute()
 const router = useRouter()
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+const API_BASE_URL = 'http://localhost:8080/api'
 
 const order = ref(null)
 const loading = ref(false)

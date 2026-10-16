@@ -122,7 +122,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading, Goods } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+const API_BASE_URL = 'http://localhost:8080/api'
 const router = useRouter()
 
 const items = ref([])
@@ -159,7 +159,7 @@ function getImageUrl(image) {
     return image
   }
 
-  return `http://127.0.0.1:8000${image.startsWith('/') ? '' : '/media/'}${image}`
+  return `http://localhost:8080${image.startsWith('/') ? '' : '/media/'}${image}`
 }
 
 function getAuthConfig() {

@@ -227,7 +227,7 @@ const sortedProducts = computed(() => {
 // 当前登录用户；未登录时为 null
 const user = ref(null)
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+const API_BASE_URL = 'http://localhost:8080/api'
 
 // 获取当前登录用户
 async function loadCurrentUser() {
@@ -296,11 +296,11 @@ function getImageUrl(image) {
 
   // 后端返回 /media/products/xxx.jpg 这样的路径
   if (image.startsWith('/media/')) {
-    return `http://127.0.0.1:8000${image}`
+    return `http://localhost:8080${image}`
   }
 
   // 兼容 products/xxx.jpg 或其他相对路径
-  return `http://127.0.0.1:8000/media/${image.replace(/^\/+/, '')}`
+  return `http://localhost:8080/media/${image.replace(/^\/+/, '')}`
 }
 
 

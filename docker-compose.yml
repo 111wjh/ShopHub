@@ -21,3 +21,16 @@ services:
       - .env.docker
     command: celery -A config worker -l info --pool=solo
     restart: unless-stopped
+  
+  nginx:
+    image: nginx:alpine
+    container_name: shophub-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./media:/app/media:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+

@@ -57,7 +57,7 @@ import { reactive, ref } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+const API_BASE_URL = 'http://localhost:8080/api'
 
 const formRef = ref(null)
 const loading = ref(false)

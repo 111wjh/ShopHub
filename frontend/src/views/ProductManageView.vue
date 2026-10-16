@@ -369,7 +369,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 const router = useRouter()
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+const API_BASE_URL = 'http://localhost:8080/api'
 
 const products = ref([])
 const loading = ref(false)
@@ -543,10 +543,10 @@ function getImageUrl(image) {
   }
 
   if (image.startsWith('/media/')) {
-    return `http://127.0.0.1:8000${image}`
+    return `http://localhost:8080${image}`
   }
 
-  return `http://127.0.0.1:8000/media/${image.replace(/^\/+/, '')}`
+  return `http://localhost:8080/media/${image.replace(/^\/+/, '')}`
 }
 
 // 打开编辑商品弹窗，并填入商品现有信息
