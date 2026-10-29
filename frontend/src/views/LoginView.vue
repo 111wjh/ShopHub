@@ -1,4 +1,3 @@
-
 <template>
   <div class="login-page">
     <el-card class="login-card">
@@ -53,114 +52,62 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
-import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { reactive, ref } from "vue";
+import axios, { API_BASE_URL } from "../services/api";
+import { ElMessage } from "element-plus";
+import { useRoute, useRouter } from "vue-router";
+const route = useRoute();
+const router = useRouter();
 
-const API_BASE_URL = 'http://localhost:8080/api'
-
-const formRef = ref(null)
-const loading = ref(false)
+const formRef = ref(null);
+const loading = ref(false);
 
 const form = reactive({
-  username: '',
-  password: '',
-})
+  username: "",
+  password: "",
+});
 
 const rules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-  ],
-}
+  username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
+  password: [{ required: true, message: "请输入密码", trigger: "blur" }],
+};
 
 const handleLogin = async () => {
-  if (!formRef.value) return
+  if (!formRef.value) return;
 
   try {
-    await formRef.value.validate()
+    await formRef.value.validate();
   } catch {
-    return
+    return;
   }
 
-  loading.value = true
+  loading.value = true;
 
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/users/login/`,
-      {
-        username: form.username,
-        password: form.password,
-      },
-    )
+    const response = await axios.post(`${API_BASE_URL}/users/login/`, {
+      username: form.username,
+      password: form.password,
+    });
 
     // 保存 JWT 令牌，后续请求需要使用
-    localStorage.setItem('access_token', response.data.access)
-    localStorage.setItem('refresh_token', response.data.refresh)
+    localStorage.setItem("access_token", response.data.access);
+    localStorage.setItem("refresh_token", response.data.refresh);
 
-    ElMessage.success('登录成功')
+    ElMessage.success("登录成功");
 
     // 返回首页
-    window.location.href = '/'
+    window.dispatchEvent(new Event("auth-changed"));
+    const target = String(route.query.redirect || "/");
+    await router.replace(
+      target.startsWith("/") && !target.startsWith("//") ? target : "/",
+    );
   } catch (error) {
-    const data = error.response?.data
-    const message = data?.detail || '登录失败，请检查用户名和密码'
+    const data = error.response?.data;
+    const message = data?.detail || "登录失败，请检查用户名和密码";
 
-    ElMessage.error(message)
+    ElMessage.error(message);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
-
-<style scoped>
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px;
-  background: #f5f7fa;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 440px;
-  border-radius: 12px;
-}
-
-h2 {
-  margin: 0;
-  text-align: center;
-  color: #303133;
-}
-
-.subtitle {
-  margin: 10px 0 28px;
-  text-align: center;
-  color: #909399;
-}
-
-.submit-button {
-  width: 100%;
-  margin-top: 8px;
-}
-
-.register-link,
-.back-home {
-  margin-top: 20px;
-  text-align: center;
-  color: #606266;
-}
-
-.back-home {
-  margin-top: 12px;
-}
-
-a {
-  color: #409eff;
-  text-decoration: none;
-}
-</style>

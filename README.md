@@ -1,263 +1,379 @@
-# ShopHub — Full-Stack E-commerce Platform
+# ShopHub
 
-ShopHub is a full-stack e-commerce application built with Django REST Framework and Vue 3. It supports product browsing, shopping cart management, order processing, simulated payments, and inventory management.
+**精选好物，探索每一种可能。**
 
-The project uses Docker to run backend services, Celery for asynchronous task processing, Redis as a message broker and result backend, and Nginx as a reverse proxy.
+ShopHub 是一个基于 **Vue 3 + Django REST Framework** 的全栈电商练习项目。前端使用深色科技风格、冰蓝色视觉、响应式布局与统一导航，串联商品浏览、账号注册、购物车、订单和商品管理。
 
-## Features
+> 支付为模拟流程，不会产生真实扣款。项目当前面向本地开发、学习和作品展示。此次界面升级仅涉及前端与文档，沿用原有后端接口及业务规则。
 
-- **User Authentication** — User registration and login.
-- **Product Management** — Browse products, view product details, and explore product categories.
-- **Product Images** — Display product images stored in the media directory.
-- **Shopping Cart** — Add products to the cart and manage quantities.
-- **Order Management** — Create orders and view order details and statuses.
-- **Simulated Payments** — Simulate order payments for demonstration purposes.
-- **Payment Timestamps** — Record the payment time when an order is paid.
-- **Order Cancellation** — Cancel pending orders.
-- **Inventory Management** — Restore product stock when a pending order is cancelled.
-- **Asynchronous Tasks** — Use Celery and Redis for background task processing.
-- **Reverse Proxy** — Use Nginx to forward API requests to Django and serve media files.
-- **Containerized Backend** — Run backend services using Docker Compose.
+![ShopHub 科技感首页](docs/screenshots/home.png)
 
-## Technology Stack
+## 目录
 
-| Component | Technology |
-|---|---|
-| Backend | Python, Django |
-| REST API | Django REST Framework |
-| Frontend | Vue 3 |
-| Build Tool | Vite |
-| HTTP Client | Axios |
-| UI Components | Element Plus |
-| State Management | Pinia |
-| Routing | Vue Router |
-| Task Queue | Celery |
-| Message Broker and Result Backend | Redis |
-| Containerization | Docker, Docker Compose |
-| Reverse Proxy | Nginx |
-| Version Control | Git, GitHub |
+- [功能与页面](#功能与页面)
+- [技术栈](#技术栈)
+- [项目结构](#项目结构)
+- [快速开始](#快速开始)
+- [使用流程](#使用流程)
+- [前端配置](#前端配置)
+- [API 速查](#api-速查)
+- [验证与构建](#验证与构建)
+- [部署说明](#部署说明)
+- [常见问题](#常见问题)
+- [开发约定与当前边界](#开发约定与当前边界)
 
-## Project Structure
+## 功能与页面
+
+| 页面     | 路由              | 功能                                                         |
+| -------- | ----------------- | ------------------------------------------------------------ |
+| 商城首页 | `/`               | 商品搜索、分类筛选、价格排序、仅看有货、分页、快速加入购物车 |
+| 商品详情 | `/products/:id`   | 商品图片、描述、价格、库存、整数数量选择、加入购物车         |
+| 登录     | `/login`          | 表单校验、JWT 登录、登录后返回原访问页面                     |
+| 注册     | `/register`       | 用户名、邮箱、密码与确认密码校验，成功后转到登录页           |
+| 购物车   | `/cart`           | 修改数量、移除商品、金额汇总、确认并创建订单                 |
+| 订单列表 | `/orders`         | 按待支付、已支付、已发货、已完成、已取消筛选                 |
+| 订单详情 | `/orders/:id`     | 商品明细、状态进度、支付时间、模拟支付、取消订单、确认收货   |
+| 商品管理 | `/product-manage` | 管理员新增、编辑、删除、上下架、图片上传及分页筛选           |
+
+所有页面共享导航、账号入口和购物车数量。未登录访问购物车或订单会转到登录页；商品管理入口与页面要求管理员身份，接口权限仍由后端独立校验。
+
+界面支持手机与桌面布局、键盘焦点、主要内容跳转链接、减少动画偏好，并为商品列表提供骨架屏、空状态及失败重试。商品图片失败时，商城和详情显示占位图。
+
+## 技术栈
+
+| 层级       | 技术                                                            |
+| ---------- | --------------------------------------------------------------- |
+| 前端       | Vue 3、Vite 8、Vue Router、Element Plus、Axios；保留 Pinia 注册 |
+| 后端       | Python、Django、Django REST Framework、Simple JWT               |
+| 数据库     | PostgreSQL                                                      |
+| 异步任务   | Celery、Redis                                                   |
+| 运行与代理 | Docker Compose、Nginx                                           |
+| 前端测试   | Node.js 内置测试运行器，无额外测试依赖                          |
+
+具体依赖版本以 `frontend/package-lock.json` 与 `requirements.txt` 为准。
+
+## 项目结构
 
 ```text
 ShopHub/
-├── config/                 # Django project configuration
-├── products/               # Product and category management
-├── orders/                 # Order processing and payment logic
-├── users/                  # User-related functionality
-├── frontend/               # Vue 3 frontend application
-├── nginx/
-│   └── nginx.conf          # Nginx configuration
-├── media/                  # Uploaded product images
-├── Dockerfile              # Backend Docker image
-├── docker-compose.yml      # Backend service configuration
-├── .env.docker             # Docker environment variables
-└── README.md               # Project documentation
+├── frontend/
+│   ├── public/favicon.svg       # ShopHub 品牌图标
+│   ├── src/
+│   │   ├── App.vue              # 统一导航、搜索、账号与购物车数量
+│   │   ├── main.js              # 应用初始化、按需注册使用到的组件
+│   │   ├── router/index.js      # 路由、登录与管理员访问守卫
+│   │   ├── services/
+│   │   │   ├── api.js           # Axios 实例、接口地址与认证失效处理
+│   │   │   └── data.js          # DRF 分页读取与媒体 URL 工具
+│   │   ├── views/               # 商城、购物车、订单、账号、管理页面
+│   │   └── style.css           # 全局主题、组件与响应式样式
+│   ├── tests/data.test.mjs      # 分页、媒体地址、异常处理测试
+│   ├── .env.example             # 前端可公开配置示例
+│   └── vite.config.js          # /api、/media 本地代理
+├── config/                     # Django、数据库、Celery 配置
+├── products/                   # 商品与分类
+├── users/                      # 注册与当前用户
+├── cart/                       # 购物车
+├── orders/                     # 订单、库存与超时任务
+├── nginx/nginx.conf            # 既有 API 代理和媒体服务
+├── media/                      # 本地上传图片，不纳入 Git
+├── Dockerfile
+├── docker-compose.yml          # backend、celery、nginx 三个服务
+├── .env.docker.example         # 后端环境变量示例
+├── requirements.txt
+├── DEVELOPMENT.md
+└── README.md
 ```
 
-## Prerequisites
+## 快速开始
 
-Install the following software before starting the project:
+### 1. 准备环境
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Node.js](https://nodejs.org/) and npm
-- Git
+- Node.js **22.12 或更高版本的 22 系列 / 更高受支持版本**（当前项目已在 22.20 验证）。
+- npm、Git。
+- Docker Desktop（容器方案）或 Python 3.14（与现有 Dockerfile 一致的本地后端方案）。
+- 可访问的 PostgreSQL 实例和 Redis。
 
-The backend Python dependencies are installed during the Docker image build.
+**当前 Compose 没有包含 PostgreSQL、Redis 或前端。** 需要单独准备数据库和 Redis，前端使用独立终端运行。
 
-## Getting Started
-
-### 1. Clone the Repository
-
-```bash
+```powershell
 git clone https://github.com/111wjh/ShopHub.git
 cd ShopHub
 ```
 
-### 2. Configure Environment Variables
+### 2. 配置后端环境
 
-Check the `.env.docker` file and ensure the settings match your local environment.
+首次克隆后复制配置示例；已有本地配置时直接检查，不要覆盖：
 
-The configuration must include the Django settings and Redis connection URLs used by the backend and Celery.
+```powershell
+Copy-Item .env.docker.example .env.docker
+```
 
-For example, if Redis is configured with database 0 as the broker and database 1 as the result backend:
+编辑 `.env.docker`：
+
+| 变量                                  | 说明                                                        |
+| ------------------------------------- | ----------------------------------------------------------- |
+| `DJANGO_SECRET_KEY`                   | 自己生成的 Django 密钥                                      |
+| `DJANGO_DEBUG`                        | 本地开发可设 `True`，公开部署需结合后端部署配置             |
+| `DB_NAME` / `DB_USER` / `DB_PASSWORD` | 已创建的 PostgreSQL 数据库与账号                            |
+| `DB_HOST` / `DB_PORT`                 | Docker Desktop 访问宿主机通常为 `host.docker.internal:5432` |
+| `CELERY_BROKER_URL`                   | Redis 消息代理地址                                          |
+| `CELERY_RESULT_BACKEND`               | Redis 结果存储地址                                          |
+
+宿主机 PostgreSQL 必须允许来自容器的连接。仓库中的旧 `db.sqlite3` 文件不是当前数据库配置所使用的数据库。
+
+### 3. 启动容器后端与 Redis
+
+推荐让现有 Compose 服务与 Redis 使用同一个 Docker 网络。将 `.env.docker` 中两个 Redis 地址改为：
 
 ```dotenv
 CELERY_BROKER_URL=redis://shophub-redis:6379/0
 CELERY_RESULT_BACKEND=redis://shophub-redis:6379/1
 ```
 
-Use the actual variable names expected by your Django settings.
-
-**Security:** Never commit production passwords, secret keys, or other sensitive credentials to a public repository.
-
-### 3. Start Redis
-
-Redis runs in a separate Docker container and is not included in `docker-compose.yml`.
-
-First, check whether the Redis container already exists:
+启动现有三个服务，指定项目名以固定网络名称：
 
 ```powershell
-docker ps -a --filter "name=shophub-redis"
+docker compose -p shophub --env-file .env.docker up -d --build
 ```
 
-If the container exists but is stopped, start it:
+首次创建 Redis，接入刚创建的 `shophub_default` 网络：
+
+```powershell
+docker run -d --name shophub-redis --restart unless-stopped --network shophub_default redis:7
+```
+
+如果 Redis 容器已存在，启动它，并检查是否已经接入网络：
 
 ```powershell
 docker start shophub-redis
+docker network inspect shophub_default
+# 仅当网络中尚无该容器时执行：
+docker network connect shophub_default shophub-redis
 ```
 
-If the container has not been created, create and start it:
+Celery 启动时若 Redis 尚未就绪会出现连接重试。Redis 就绪后检查：
 
 ```powershell
-docker run -d --name shophub-redis --restart unless-stopped redis:7
+docker exec shophub-redis redis-cli ping
+docker compose -p shophub logs --tail 50 celery
 ```
 
-Verify that Redis is running:
+预期 Redis 返回 `PONG`，Celery 日志显示连接成功。
+
+### 4. 初始化数据库与商品
 
 ```powershell
-docker ps --filter "name=shophub-redis"
+docker compose -p shophub exec backend python manage.py migrate
+docker compose -p shophub exec backend python manage.py createsuperuser
 ```
 
-**Important:** Redis must be reachable by the backend and Celery containers through a shared Docker network. The hostname `shophub-redis` must resolve from those containers. If necessary, connect the Redis container to the Docker network used by the application.
+访问 [Django Admin](http://localhost:8080/admin/)，使用超级用户登录。先创建分类，再创建商品并设置价格、库存和上架状态。也可在前端以管理员登录后管理商品；分类创建沿用 Django Admin。
 
-### 4. Start the Backend Services
+仓库不附带生产数据、预置账号或已上传商品图片，第一次启动没有商品是正常情况。
 
-From the project root directory, run:
+### 5. 启动前端
 
-```powershell
-docker compose --env-file .env.docker up -d --build
-```
-
-This starts three services:
-
-- **Backend** — Django REST API on port `8000`.
-- **Celery** — Background task worker.
-- **Nginx** — Reverse proxy on port `8080`.
-
-Check the running containers:
-
-```powershell
-docker ps
-```
-
-### 5. Start the Frontend
-
-Open a separate terminal window and run:
+新开终端：
 
 ```powershell
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Vite starts the frontend development server. Open the URL shown in the terminal, normally:
+打开 [ShopHub 本地商城](http://localhost:5173)。默认由 Vite 将 `/api` 和 `/media` 代理至 `http://localhost:8080`。
 
-http://localhost:5173
+如果 5173 被其他项目占用，可运行：
 
-## Access the Application
+```powershell
+npm run dev -- --port 5174
+```
 
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:5173 |
-| API through Nginx | http://localhost:8080/api/ |
-| Django backend directly | http://localhost:8000/ |
+通过上述相对路径代理访问时，无需为新开发端口修改后端 CORS。
 
-The available API endpoints depend on the application's URL configuration.
+### 可选：本地 Python 后端
 
-## Order Processing
+不用容器时，先在本机准备 PostgreSQL 与 Redis，然后：
 
-The order workflow supports the following operations:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.docker.example .env
+```
 
-1. Browse products and add items to the shopping cart.
-2. Create an order from the selected products.
-3. Pay for an order using the simulated payment workflow.
-4. Record the payment timestamp when payment succeeds.
-5. Cancel an order while it is still pending.
-6. Restore product inventory when a pending order is cancelled.
+编辑 `.env`：`DB_HOST=127.0.0.1`，两个 Redis 地址分别使用 `redis://127.0.0.1:6379/0`、`redis://127.0.0.1:6379/1`，并设置自己的数据库账号和密钥。
 
-Order status transitions and inventory updates are handled by the backend.
+```powershell
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver 127.0.0.1:8000
+```
 
-## Nginx and Media Files
+另开终端启动任务进程（Windows）：
 
-Nginx forwards API requests to the Django backend and provides access to media files.
+```powershell
+.\.venv\Scripts\Activate.ps1
+celery -A config worker -l info --pool=solo
+```
 
-The Nginx configuration is located at:
+前端创建 `frontend/.env.local`，写入 `VITE_PROXY_TARGET=http://127.0.0.1:8000`，再启动 Vite。
+
+## 使用流程
+
+1. 浏览首页，通过搜索、分类和价格排序找到商品。
+2. 注册并登录。可在商品详情选择数量，加入购物车。
+3. 在购物车核对数量及金额，点击「创建订单」并确认。
+4. 后端从购物车创建订单、扣减库存并清空购物车。
+5. 在订单详情点击「模拟支付」，成功后显示支付时间。
+6. 管理员可在订单详情为已支付订单发货，用户可为已发货订单确认收货。
+7. 待支付订单可手动取消；Celery 正常运行时，后端还会在创建后约 15 分钟检查并取消仍未支付的订单，恢复库存。
 
 ```text
-nginx/nginx.conf
+待支付 ──模拟支付──> 已支付 ──管理员发货──> 已发货 ──确认收货──> 已完成
+   └──手动取消 / 超时检查──> 已取消（恢复库存）
 ```
 
-The Docker Compose configuration publishes Nginx on port `8080` and Django directly on port `8000`.
+管理员订单接口可以返回全部用户的订单；普通用户只可访问自己的订单。金额、库存、订单权限和状态变更由后端判定。
 
-Uploaded media files are persisted using the local `media/` directory mounted into the backend and Nginx containers.
+## 前端配置
 
-## Useful Docker Commands
+可将 `frontend/.env.example` 复制为 `frontend/.env.local`，按需覆盖：
 
-### View Running Containers
+```dotenv
+VITE_API_BASE_URL=/api
+VITE_MEDIA_BASE_URL=
+VITE_PROXY_TARGET=http://localhost:8080
+```
+
+| 配置项                | 默认值                  | 作用                                                     |
+| --------------------- | ----------------------- | -------------------------------------------------------- |
+| `VITE_API_BASE_URL`   | `/api`                  | 浏览器访问的接口前缀，可配置完整 API 地址                |
+| `VITE_MEDIA_BASE_URL` | 空                      | `/media/` 图片的来源；API 为完整 URL 时默认使用其 origin |
+| `VITE_PROXY_TARGET`   | `http://localhost:8080` | 只用于 Vite 开发和预览服务器的代理目标                   |
+
+修改环境变量后重启 Vite；生产构建需要重新执行 `npm run build`。`VITE_` 变量会进入浏览器代码，只能放可公开的地址和配置。
+
+JWT 访问令牌与刷新令牌沿用原项目的 localStorage 存储方式。遇到接口返回 401 时清理登录状态；再次登录后继续访问。当前没有自动刷新令牌，后端也没有暴露刷新端点。
+
+## API 速查
+
+默认 API 前缀为 `/api`。认证请求携带 `Authorization: Bearer <access_token>`。
+
+| 方法        | 路径                     | 权限 / 用途                                   |
+| ----------- | ------------------------ | --------------------------------------------- |
+| POST        | `/users/register/`       | 公开；用户名、邮箱、密码                      |
+| POST        | `/users/login/`          | 公开；返回 `access`、`refresh`                |
+| GET         | `/users/me/`             | 登录用户资料和 `is_staff`                     |
+| GET         | `/products/`             | 已上架商品；支持 `search`、`category`、`page` |
+| GET         | `/products/categories/`  | 分类列表                                      |
+| GET         | `/products/:id/`         | 已上架商品详情                                |
+| GET         | `/products/?manage=true` | 管理员查询全部商品                            |
+| POST        | `/products/create/`      | 管理员新增；支持 FormData 图片上传            |
+| PUT / PATCH | `/products/:id/update/`  | 管理员修改 / 上下架                           |
+| DELETE      | `/products/:id/delete/`  | 管理员删除                                    |
+| GET         | `/cart/`                 | 当前购物车                                    |
+| POST        | `/cart/add/`             | `{ product_id, quantity }`                    |
+| PUT         | `/cart/item/:id/`        | `{ quantity }`                                |
+| DELETE      | `/cart/item/:id/delete/` | 移除购物车商品                                |
+| POST        | `/orders/create/`        | 从整个购物车创建订单                          |
+| GET         | `/orders/`               | 当前用户订单；管理员为全部订单                |
+| GET         | `/orders/:id/`           | 订单详情                                      |
+| POST        | `/orders/:id/pay/`       | 模拟支付                                      |
+| POST        | `/orders/:id/cancel/`    | 取消待支付订单                                |
+| POST        | `/orders/:id/ship/`      | 管理员发货                                    |
+| POST        | `/orders/:id/complete/`  | 确认收货                                      |
+
+路径、字段与权限以项目源码为准。商品图片支持 JPG、PNG、WEBP，最大 5 MB。列表工具兼容普通数组和 DRF 的 `{ count, next, results }` 响应；后端分页会被完整读取，再进行前端价格排序、库存筛选和分页，适合当前项目规模。
+
+## 验证与构建
 
 ```powershell
-docker ps
+cd frontend
+npm test
+npm run build
+npm run preview
 ```
 
-### View Backend Logs
+- `npm test`：运行分页完整性、鉴权头与筛选参数保留、分页来源、循环分页、错误传播和媒体 URL 测试。
+- `npm run build`：编译全部 Vue 页面，输出至 `frontend/dist/`。
+- `npm run preview`：本地预览生产构建；使用同样的 `/api`、`/media` 代理。
+
+本次界面升级已进行桌面与手机浏览器检查，并使用隔离的内存测试接口验证商品分页、库存筛选、登录返回、购物车数量与金额、下单和模拟支付。模拟接口验证不能替代真实 PostgreSQL、Redis、Celery 与后端的联合验收。
+
+## 部署说明
+
+当前 `docker-compose.yml` 和 `nginx/nginx.conf` **只运行后端与媒体代理，不会构建或托管 Vue 前端**。Vite 的本地代理也不会打包到 `dist/`。
+
+部署前端时：
+
+1. 在 `frontend/` 中执行 `npm ci`、`npm test`、`npm run build`。
+2. 将 `frontend/dist/` 托管至静态服务器。
+3. 为 Vue Router History 模式配置回退到 `index.html`，避免刷新详情页时 404。
+4. 让静态服务器把 `/api/`、`/media/` 代理到现有后端入口，或构建时配置独立 API / 图片来源。
+5. 跨来源 API 访问需要由后端允许相应的前端来源。
+
+以下仅为**独立前端 Nginx** 的参考，不是仓库现有配置：
+
+```nginx
+server {
+    listen 80;
+    server_name localhost;
+    root /srv/shophub/dist;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $http_host;
+    }
+
+    location /media/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $http_host;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+真实公开部署还需结合后端的允许域名、HTTPS、静态文件、密钥、数据库与服务进程配置；现有 Django `runserver` 用于开发。
+
+## 常见问题
+
+| 现象                        | 检查方式                                                               |
+| --------------------------- | ---------------------------------------------------------------------- |
+| Vite 提示端口被占用         | 使用 `npm run dev -- --port 5174`，或关闭自己已启动的重复进程          |
+| 首页显示「连接暂时中断」    | 确认 8080 后端入口可访问，检查 `VITE_PROXY_TARGET`，随后点击重新加载   |
+| API 返回 502 / 500          | 检查 backend 日志、PostgreSQL 连接和是否已执行数据库迁移               |
+| 首页没有商品                | 在 Admin 创建分类与商品，并设置上架和库存                              |
+| 图片 404                    | 检查文件是否在 `media/`，容器媒体挂载及 `VITE_MEDIA_BASE_URL` 是否正确 |
+| 登录失效或收到 401          | 重新登录；当前不自动刷新访问令牌                                       |
+| 普通用户无法打开商品管理    | 正常权限限制，需使用 `is_staff=True` 的管理员账号                      |
+| 超时订单没有自动取消        | 检查 Celery 是否运行、Redis 是否连通，及两个容器是否在同一网络         |
+| 刷新 `/products/1` 返回 404 | 静态服务器需要配置 History 模式的 `index.html` 回退                    |
+| 修改 `.env.local` 后没生效  | 重启 Vite，或重新构建生产文件                                          |
+
+常用命令：
 
 ```powershell
-docker logs shophub-backend
+docker compose -p shophub ps
+docker compose -p shophub logs --tail 100 backend
+docker compose -p shophub logs --tail 100 celery
+docker compose -p shophub logs --tail 100 nginx
+docker exec shophub-redis redis-cli ping
+docker compose -p shophub down
 ```
 
-### View Celery Logs
+最后一条只停止并移除 Compose 管理的容器，不停止单独创建的 Redis。Redis 网络需要在下次启动时重新检查。
 
-```powershell
-docker logs shophub-celery
-```
+## 开发约定与当前边界
 
-### View Nginx Logs
-
-```powershell
-docker logs shophub-nginx
-```
-
-### View Redis Logs
-
-```powershell
-docker logs shophub-redis
-```
-
-### Restart Redis
-
-```powershell
-docker restart shophub-redis
-```
-
-### Stop Backend Services
-
-```powershell
-docker compose --env-file .env.docker down
-```
-
-This command stops the Compose-managed backend, Celery, and Nginx services. It does not stop Redis because Redis is managed separately.
-
-## Important Notes
-
-- Payments are simulated and do not process real transactions.
-- Redis must be running and accessible before Celery background tasks can work correctly.
-- Redis and the application containers must share a network that supports the configured Redis hostname.
-- The frontend development server runs separately from Docker Compose.
-- Do not expose Redis publicly unless proper network restrictions and authentication are configured.
-- The project is intended for learning, development, and portfolio demonstration.
-- Additional security and deployment configuration is required before production use.
-
-## Future Improvements
-
-Potential future enhancements include:
-
-- Automated backend and frontend tests.
-- Production-ready deployment configuration.
-- Real payment gateway integration.
-- Improved logging and monitoring.
-- Continuous integration and deployment (CI/CD).
-
-## License
-
-This project is intended for educational and portfolio demonstration purposes. Add a license file if you plan to distribute it under a specific open-source license.
+- 前端开发说明见 [frontend/README.md](frontend/README.md)；环境速查见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+- 不提交 `.env`、`.env.docker`、`.env.local`、令牌、数据库、上传图片、`node_modules` 和 `dist`。
+- 本次改造不更改 Django 接口、模型、迁移、数据库、库存逻辑、Docker 或后端 Nginx 配置。
+- 当前没有真实支付、物流对接、地址管理、优惠券或真实售后流程。
+- 全量读取列表后的前端排序适合小型演示；更大规模商品库需要后端排序和分页能力配合。
+- 项目尚未附带开源许可证文件，不能将用途说明视为正式开源授权。
