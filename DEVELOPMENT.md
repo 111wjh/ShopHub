@@ -1,6 +1,6 @@
 # ShopHub 开发环境速查
 
-完整安装、数据库初始化、接口和部署说明见 [README.md](README.md)。前端维护说明见 [frontend/README.md](frontend/README.md)。
+完整安装、数据库初始化、接口和部署说明见 [运行与部署指南](docs/SETUP.md)。项目设计见 [README.md](README.md)。前端维护说明见 [frontend/README.md](frontend/README.md)。
 
 ## 前端
 
