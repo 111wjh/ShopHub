@@ -6,7 +6,7 @@ ShopHub 是一个前后端分离的电商作品项目，围绕商品、购物车
 
 前端采用深色科技风格，提供桌面与移动端布局；普通用户完成购物与订单操作，管理员维护商品并处理发货。支付使用模拟接口，不涉及真实资金交易。
 
-**直接看截图：** [商城首页原图](https://github.com/111wjh/ShopHub/blob/codex/tech-storefront/docs/screenshots/home-desktop.jpg) · [购物车原图](https://github.com/111wjh/ShopHub/blob/codex/tech-storefront/docs/screenshots/cart.jpg) · [全部页面截图](docs/screenshots/README.md)
+**直接看截图：** [商城首页原图](docs/screenshots/home-desktop.jpg) · [购物车原图](docs/screenshots/cart.jpg) · [全部页面截图](docs/screenshots/README.md)
 
 ![ShopHub 商城首页](docs/screenshots/home.jpg)
 
